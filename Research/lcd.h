@@ -1,4 +1,6 @@
-`#define RS 0
+`       //Included in wHite_Line_follower.c
+
+#define RS 0
 #define RW 1
 #define EN 2
 #define lcd_port PORTC
