@@ -1,10 +1,11 @@
 
+#define F_CPU 14745600
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include <util/delay.h>
 
 #include <math.h> //included to support power function
-#include "lcd.c"
+#include "lcd.h"
 
 void port_init();
 void timer5_init();
@@ -22,7 +23,6 @@ unsigned int position,last_proportional = 0;
 unsigned int integral,Kp,Ki,Kd;
 unsigned int derivative,proportional;
 double power_difference,pid ;
-
 
 //Function to configure LCD port
 void lcd_port_config (void)
@@ -112,6 +112,9 @@ void print_sensor(char row, char coloumn,unsigned char channel)
 	
 	ADC_Value = ADC_Conversion(channel);
 	lcd_print(row, coloumn, ADC_Value, 3);
+	
+	pid = PID(ADC_Value);
+	lcd_print(1,9,pid,3);
 }
 
 //Function for velocity control
@@ -142,9 +145,6 @@ void stop (void)
 {
   motion_set (0x00);
 }
-//Function to Reset LCD
-
-
 
 void init_devices (void)
 {
@@ -174,8 +174,10 @@ int PID(position)
 	// to the right.  If it is a negative number, the robot will
 	// turn to the left, and the magnitude of the number determines
 	// the sharpness of the turn.
-	
-	power_difference = proportional*Kp + integral*Ki + derivative*Kd ;
+	lcd_print(2,1,proportional,3);
+    lcd_print(2,5,derivative,3);
+	lcd_print(2,9,integral,3);
+	power_difference = proportional + integral + derivative ;
 	
 	return power_difference ;
 	
@@ -198,43 +200,40 @@ int main()
 	while(1)
 	{
 
-		Left_white_line = ADC_Conversion(3);	//Getting data of Left WL Sensor
+		//Left_white_line = ADC_Conversion(3);	//Getting data of Left WL Sensor
 		Center_white_line = ADC_Conversion(2);	//Getting data of Center WL Sensor
-		Right_white_line = ADC_Conversion(1);	//Getting data of Right WL Sensor
+		//Right_white_line = ADC_Conversion(1);	//Getting data of Right WL Sensor
 
 		flag=0;
 
-		print_sensor(1,1,3);	//Prints value of White Line Sensor1
-		print_sensor(1,5,2);	//Prints Value of White Line Sensor2
-		print_sensor(1,9,1);	//Prints Value of White Line Sensor3
+		//print_sensor(1,1,3);	//Prints value of White Line Sensor1
+		print_sensor(1,1,2);	//Prints Value of White Line Sensor2
+		//print_sensor(1,9,1);	//Prints Value of White Line Sensor3
 		
-		pid = PID(Center_white_line);
-       
-	    //lcd_cursor(2,3);
-		lcd_print(2,3,pid,3);
 		
-		if(Center_white_line<0x28)
+
+		if(Center_white_line<0x10)
 		{
 			flag=1;
 			forward();
-			velocity(150,150);
+			velocity(100,100);
 		}
 
-		if((Left_white_line>0x28) && (flag==0))
+		if((Left_white_line>0x10) && (flag==0))
 		{
 			flag=1;
 			forward();
 			velocity(130,50);
 		}
 
-		if((Right_white_line>0x28) && (flag==0))
+		if((Right_white_line>0x10) && (flag==0))
 		{
 			flag=1;
 			forward();
 			velocity(50,130);
 		}
 
-		if(Center_white_line>0x28 && Left_white_line>0x28 && Right_white_line>0x28)
+		if(Center_white_line>0x10 && Left_white_line>0x10 && Right_white_line>0x10)
 		{
 			forward();
 			velocity(0,0);
@@ -242,4 +241,3 @@ int main()
 
 	}
 }
-`
