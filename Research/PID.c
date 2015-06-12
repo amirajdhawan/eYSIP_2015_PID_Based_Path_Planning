@@ -1,4 +1,3 @@
-
 #define F_CPU 14745600
 #include <avr/io.h>
 #include <avr/interrupt.h>
@@ -19,10 +18,11 @@ unsigned char Left_white_line = 0;
 unsigned char Center_white_line = 0;
 unsigned char Right_white_line = 0;
 
-unsigned int position,last_proportional = 0;
-unsigned int integral,Kp,Ki,Kd;
-unsigned int derivative,proportional;
-double power_difference,pid ;
+unsigned senser_value_L,senser_value_C,senser_value_R ;
+signed int position,last_proportional = 7;
+signed int integral,Kp,Ki,Kd;
+signed int derivative,proportional;
+double correction,pid ;
 
 //Function to configure LCD port
 void lcd_port_config (void)
@@ -107,14 +107,13 @@ unsigned char ADC_Conversion(unsigned char Ch)
 }
 
 //Function To Print Sesor Values At Desired Row And Coloumn Location on LCD
-void print_sensor(char row, char coloumn,unsigned char channel)
+int print_sensor(char row, char coloumn,unsigned char channel)
 {
 	
 	ADC_Value = ADC_Conversion(channel);
 	lcd_print(row, coloumn, ADC_Value, 3);
 	
-	pid = PID(ADC_Value);
-	lcd_print(1,9,pid,3);
+	return ADC_Value ;
 }
 
 //Function for velocity control
@@ -159,12 +158,13 @@ int PID(position)
 {
 	
 	// The "proportional" term should be 0 when we are on the line.
-	proportional = position - 7;
+	int proportional = position - 30;
 	
 	// Compute the derivative (change) and integral (sum) of the
 	// position.
-	derivative = proportional - last_proportional;
 	integral += proportional;
+	
+	derivative = proportional - last_proportional;
 	
 	// Remember the last position.
 	last_proportional = proportional;
@@ -174,20 +174,21 @@ int PID(position)
 	// to the right.  If it is a negative number, the robot will
 	// turn to the left, and the magnitude of the number determines
 	// the sharpness of the turn.
-	lcd_print(2,1,proportional,3);
-    lcd_print(2,5,derivative,3);
-	lcd_print(2,9,integral,3);
-	power_difference = proportional + integral + derivative ;
+	lcd_print(2,1,proportional,4);
+    lcd_print(2,6,integral,4);
+	lcd_print(2,11,derivative,4);
 	
-	return power_difference ;
+	correction = proportional*Kp + integral*Ki + derivative*Kd ;
+	
+	return correction ;
 	
 }
 
-void SetTunings(double Kp, double Ki, double Kd)
+void SetTunings()
 {
-	Kp = 1;
-	Ki = 1;
-	Kd = 1;
+	Kp = 10;
+	Ki = 0;
+	Kd = 0;
 }
 
 //Main Function
@@ -196,48 +197,59 @@ int main()
 	init_devices();
 	lcd_set_4bit();
 	lcd_init();
+	int max = 100 ; 
 	
 	while(1)
 	{
 
-		//Left_white_line = ADC_Conversion(3);	//Getting data of Left WL Sensor
+		Left_white_line = ADC_Conversion(3);	//Getting data of Left WL Sensor
 		Center_white_line = ADC_Conversion(2);	//Getting data of Center WL Sensor
-		//Right_white_line = ADC_Conversion(1);	//Getting data of Right WL Sensor
+		Right_white_line = ADC_Conversion(1);	//Getting data of Right WL Sensor
 
 		flag=0;
 
-		//print_sensor(1,1,3);	//Prints value of White Line Sensor1
-		print_sensor(1,1,2);	//Prints Value of White Line Sensor2
-		//print_sensor(1,9,1);	//Prints Value of White Line Sensor3
+		senser_value_L = print_sensor(1,5,3);	//Prints value of White Line Sensor1
+		senser_value_C = print_sensor(1,1,2);	//Prints Value of White Line Sensor2
+		senser_value_R = print_sensor(1,9,1);	//Prints Value of White Line Sensor3
 		
+		SetTunings();
 		
-
-		if(Center_white_line<0x10)
+		pid = PID(senser_value_L-senser_value_R);
+		
+		if (pid < 30)
 		{
-			flag=1;
 			forward();
-			velocity(100,100);
+			velocity(max+pid,max);
+		}
+		
+		if (pid > 30)
+		{
+			forward();
+			velocity(max,max+pid);
 		}
 
-		if((Left_white_line>0x10) && (flag==0))
+		/*else if((Left_white_line < 0x30) && (flag==0))
 		{
+			pid = PID(senser_value_L);
 			flag=1;
 			forward();
-			velocity(130,50);
+			velocity(max,max+pid);
 		}
 
-		if((Right_white_line>0x10) && (flag==0))
+		else if((Right_white_line<0x30) && (flag==0))
 		{
+			pid = PID(senser_value_R);
 			flag=1;
 			forward();
-			velocity(50,130);
+			velocity(max+pid,max);
 		}
 
 		if(Center_white_line>0x10 && Left_white_line>0x10 && Right_white_line>0x10)
 		{
 			forward();
 			velocity(0,0);
-		}
-
+		}*/
+		
+		lcd_print(1,13,pid,3);
 	}
 }
