@@ -11,7 +11,9 @@ void timer5_init();
 void velocity(unsigned char, unsigned char);
 void motors_delay();
 
-unsigned char data_received [7];
+unsigned int data_received [7];
+unsigned int sensor_value[7];
+unsigned int value_on_line;
 
 unsigned char ADC_Conversion(unsigned char);
 unsigned char ADC_Value;
@@ -20,9 +22,9 @@ unsigned char Left_white_line = 0;
 unsigned char Center_white_line = 0;
 unsigned char Right_white_line = 0;
 
-unsigned senser_value_L,senser_value_C,senser_value_R ;
-signed int position,last_proportional = 7;
-signed int integral,Kp,Ki,Kd;
+unsigned int senser_value_sum;
+signed int position,last_proportional,center=0;
+signed int integral,Kp,Ki,Kd,speed;
 signed int derivative,proportional,avg_senser;
 double correction,pid ;
 
@@ -194,11 +196,21 @@ void init_devices (void)
 	sei();   //Enables the global interrupts
 }
 
+sensor_on_line(int sensor)
+{
+	if(sensor < 20)
+		return 0;
+	else
+	   return 1;	
+	
+}
+
+
 int PID(position)
 {
 	
 	// The "proportional" term should be 0 when we are on the line.
-	int proportional = position - 255;
+	int proportional = position - center ;
 	
 	// Compute the derivative (change) and integral (sum) of the
 	// position.
@@ -214,9 +226,10 @@ int PID(position)
 	// to the right.  If it is a negative number, the robot will
 	// turn to the left, and the magnitude of the number determines
 	// the sharpness of the turn.
-	lcd_print(2,1,proportional,4);
-    lcd_print(2,6,integral,4);
-	lcd_print(2,11,derivative,4);
+	
+	lcd_print(2,1,proportional,3);
+	lcd_print(2,5,integral,3);
+	lcd_print(2,9,derivative,3);
 	
 	correction = proportional*Kp + integral*Ki + derivative*Kd ;
 	
@@ -226,10 +239,11 @@ int PID(position)
 
 void SetTunings()
 {
-	Kp = 10;
+	Kp = 20;
 	Ki = 0;
 	Kd = 0;
 }
+
 
 //Main Function
 int main()
@@ -237,7 +251,8 @@ int main()
 	init_devices();
 	lcd_set_4bit();
 	lcd_init();
-	int max = 100 ; 
+	int max = 60 ; 
+	speed = 180;
 	
 	while(1)
 	{
@@ -252,58 +267,61 @@ int main()
         
 		flag=0;
 		
-		lcd_print(1, 1, data_received [0], 3);
-		lcd_print(1, 5, data_received [1], 3);
-		lcd_print(1, 9, data_received [2], 3);
-		lcd_print(2, 1, data_received [3], 3);
-		lcd_print(2, 5, data_received [4], 3);
-		lcd_print(2, 9, data_received [5], 3);
-		lcd_print(2, 13, data_received [6], 3);
+		/*lcd_print(1, 1, sensor_value[0], 3);
+		lcd_print(1, 5, sensor_value[1], 3);
+		lcd_print(1, 9, sensor_value[2], 3);
+		lcd_print(2, 1, sensor_value[3], 3);
+		lcd_print(2, 5, sensor_value[4], 3);
+		lcd_print(2, 9, sensor_value[5], 3);
+		lcd_print(2, 13, sensor_value[6], 3);
+		*/
+		SetTunings();
 		
+		sensor_value[0] = sensor_on_line(data_received [0]);
+		sensor_value[1] = sensor_on_line(data_received [1]);
+		sensor_value[2] = sensor_on_line(data_received [2]);
+		sensor_value[3] = sensor_on_line(data_received [3]);
+		sensor_value[4] = sensor_on_line(data_received [4]);
+		sensor_value[5] = sensor_on_line(data_received [5]);
+		sensor_value[6] = sensor_on_line(data_received [6]);
 		
-		 /*senser_value_L = print_sensor(1,5,3);	//Prints value of White Line Sensor1
-		senser_value_C = print_sensor(1,1,2);	//Prints Value of White Line Sensor2
-		senser_value_R = print_sensor(1,9,1);	//Prints Value of White Line Sensor3
+		senser_value_sum = sensor_value[1]+sensor_value[2]+sensor_value[3]+sensor_value[4]+sensor_value[5];
+		value_on_line = ((-2)*sensor_value[1] + (-1)*sensor_value[2] + 0*sensor_value[3] + (1)*sensor_value[4]+ (2)*sensor_value[5])/(senser_value_sum) ;
 		
-		//SetTunings();
-	    avg_senser = (senser_value_L+senser_value_C+senser_value_R)/3 ;
+		//lcd_print(1, 5,sensor_value[2], 3);
+		pid = PID(value_on_line) ; 
 		
-		pid = PID(avg_senser);
-		
-		if (pid < 30)
+		if (pid < -max)
+		{
+			pid = -max;
+		}
+		if (pid > max)
+		{
+			pid = max;
+		}
+		if (pid == 0)
 		{
 			forward();
-			velocity(max+pid,max);
+			velocity(speed,speed);
+			
+		}
+		else if(pid > 0)
+		{
+			forward();
+			velocity(speed,speed+pid);
+		}
+		else
+		{
+			forward();
+			velocity(speed+pid,speed);	
 		}
 		
-		if (pid > 30)
-		{
-			forward();
-			velocity(max,max+pid);
-		}
-
-		/*else if((Left_white_line < 0x30) && (flag==0))
-		{
-			pid = PID(senser_value_L);
-			flag=1;
-			forward();
-			velocity(max,max+pid);
-		}
-
-		else if((Right_white_line<0x30) && (flag==0))
-		{
-			pid = PID(senser_value_R);
-			flag=1;
-			forward();
-			velocity(max+pid,max);
-		}
-
-		if(Center_white_line>0x10 && Left_white_line>0x10 && Right_white_line>0x10)
+		if (senser_value_sum == 5)
 		{
 			forward();
 			velocity(0,0);
-		}
-		
-		lcd_print(1,13,pid,3);*/
+		}					
+			
+	   lcd_print(1, 5,pid, 3);
 	}
 }
