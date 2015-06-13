@@ -1,5 +1,8 @@
 PID controller
-http://brettbeauregard.com/blog/2011/04/improving-the-beginner%E2%80%99s-pid-initialization/
+<http://brettbeauregard.com/blog/2011/04/improving-the-beginner%E2%80%99s-pid-initialization/>
 
 Polulu Advanced line follower
-https://www.pololu.com/docs/0J21/7.c
+<https://www.pololu.com/docs/0J21/7.c>
+
+PID for 6 to 10 sensers
+<http://learn.eprlabs.com/pid-line-follower/ >
