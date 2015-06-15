@@ -10,20 +10,21 @@ void port_init();
 void timer5_init();
 void velocity(unsigned char, unsigned char);
 void motors_delay();
+signed int PID(signed int position);
 
 unsigned int data_received [7];
-signed int sensor_value[7];
-
-signed int value_on_line;
+unsigned int sensor_value[7];
 
 unsigned char ADC_Conversion(unsigned char);
 unsigned char ADC_Value;
 
-unsigned int senser_value_sum;
+signed int senser_value_sum;
+
+signed int value_on_line;
 signed int position,last_proportional,center=0;
 signed int integral,Kp,Ki,Kd,speed;
 signed int derivative,proportional,avg_senser;
-signed int correction,pid,pid1 ;
+signed int correction,pid;
 
 
 void spi_pin_config (void)
@@ -192,22 +193,23 @@ void init_devices (void)
 	timer5_init();
 	sei();   //Enables the global interrupts
 }
-
+// Return online values
 sensor_on_line(int sensor)
 {
-	if(sensor < 20)
+	if(sensor < 30)
 		return 0;
 	else
 	   return 1;	
 	
 }
 
-
-int PID(int position)
+// Function for PID value Or correction value
+signed int PID(signed int position)
 {
 	
 	// The "proportional" term should be 0 when we are on the line.
 	proportional = position - center;
+	
 	
 	// Compute the derivative (change) and integral (sum) of the
 	// position.
@@ -248,7 +250,7 @@ int main()
 	init_devices();
 	lcd_set_4bit();
 	lcd_init();
-	int max = 100 ; 
+	signed int max = 100 ; 
 	speed = 150;
 	
 	while(1)
@@ -282,9 +284,23 @@ int main()
 		
 		senser_value_sum = sensor_value[0] + sensor_value[1] + sensor_value[2] + sensor_value[3] + sensor_value[4] + sensor_value[5] + sensor_value[6];
 		
-		value_on_line = 100*((-3)*sensor_value[0]  + (-2)*sensor_value[1] + (-1)*sensor_value[2] + (0)*sensor_value[3] + (1)*sensor_value[4] + (2)*sensor_value[5] + (3)*sensor_value[6] )/(senser_value_sum) ;
+		//control variable
+		value_on_line = 100*(((-3)*sensor_value[0]  + (-2)*sensor_value[1] + (-1)*sensor_value[2] + (0)*sensor_value[3] + (1)*sensor_value[4] + (2)*sensor_value[5] + (3)*sensor_value[6] )/(senser_value_sum)) ;
+		
+		if(value_on_line<0)
+		{
+			lcd_cursor(2,1);
+			lcd_string("n");
+		}
+		if(value_on_line>0)
+		{
+			lcd_cursor(2,1);
+			lcd_string("p");
+		}
+		
+		lcd_print(2,2,value_on_line,3);
 						
-		lcd_print(2,1,value_on_line,3);
+		//lcd_print(2,1,esc,3);
 		
 		lcd_print(1, 1,sensor_value[0], 1);
 		lcd_print(1, 3,sensor_value[1], 1);
@@ -296,9 +312,9 @@ int main()
 		
 		pid = PID(value_on_line) ; 
 		
-		if (pid <= -max)
+		if (pid < -max)
 		{
-			pid = -max;
+			pid = -max ;
 		}
 		if (pid >= max)
 		{
@@ -310,6 +326,7 @@ int main()
 			forward();
 			velocity(0,0);
 		}
+		
 		else
 		{
 			if (pid == 0)
@@ -326,13 +343,16 @@ int main()
 				lcd_print(2,9,speed+pid,3);
 				lcd_print(1, 14,pid, 3);
 			}
+			
 			if(pid < 0)
 			{
 				forward();
 				velocity(speed-pid,speed);
 				lcd_print(2,5,speed-pid,3);
 				lcd_print(2,9,speed,3);
-				lcd_print(1, 14,pid, 3);
+				lcd_cursor(2,1);
+				lcd_string("p");
+				lcd_print(2, 2,pid, 3);
 			}
 		}						
 		 
