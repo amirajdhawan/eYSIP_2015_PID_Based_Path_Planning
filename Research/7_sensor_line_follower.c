@@ -20,11 +20,12 @@ unsigned char ADC_Value;
 
 signed int senser_value_sum;
 
-signed int value_on_line;
+int16_t value_on_line;
 signed int position,last_proportional,center=0;
 signed int integral,Kp,Ki,Kd,speed;
 signed int derivative,proportional,avg_senser;
-signed int correction,pid;
+signed int correction,pid,weight;
+
 
 
 void spi_pin_config (void)
@@ -230,7 +231,7 @@ signed int PID(signed int position)
 	//lcd_print(2,5,integral,3);
 	//lcd_print(2,9,derivative,3);
 	
-	correction = proportional*Kp ;//+ integral*Ki + derivative*Kd ;
+	correction = proportional*Kp + integral*Ki + derivative*Kd ;
 	
 	return correction ;
 	
@@ -239,8 +240,8 @@ signed int PID(signed int position)
 void SetTunings()
 {
 	Kp = 1;
-	Ki = 0;
-	Kd = 0;
+	Ki = 1/1000;
+	Kd = 2;
 }
 
 
@@ -282,25 +283,23 @@ int main()
 		sensor_value[5] = sensor_on_line(data_received [5]);
 		sensor_value[6] = sensor_on_line(data_received [6]);
 		
-		senser_value_sum = sensor_value[0] + sensor_value[1] + sensor_value[2] + sensor_value[3] + sensor_value[4] + sensor_value[5] + sensor_value[6];
+		senser_value_sum = sensor_value[0] + sensor_value[1] + sensor_value[2] + sensor_value[3] + sensor_value[4] + sensor_value[5] + sensor_value[6] ;
 		
-		//control variable
-		value_on_line = 100*(((-3)*sensor_value[0]  + (-2)*sensor_value[1] + (-1)*sensor_value[2] + (0)*sensor_value[3] + (1)*sensor_value[4] + (2)*sensor_value[5] + (3)*sensor_value[6] )/(senser_value_sum)) ;
+		weight = 100*((-3)*sensor_value[0] + (-2)*sensor_value[1]+ (-1)*sensor_value[2] + (0)*sensor_value[3] + (1)*sensor_value[4] + (2)*sensor_value[5] + (3)*sensor_value[6]);
 		
-		if(value_on_line<0)
+		if(weight<0)
 		{
 			lcd_cursor(2,1);
 			lcd_string("n");
 		}
-		if(value_on_line>0)
+		if(weight>0)
 		{
 			lcd_cursor(2,1);
 			lcd_string("p");
 		}
 		
-		lcd_print(2,2,value_on_line,3);
-						
-		//lcd_print(2,1,esc,3);
+		//control variable
+		value_on_line = weight/senser_value_sum ;
 		
 		lcd_print(1, 1,sensor_value[0], 1);
 		lcd_print(1, 3,sensor_value[1], 1);
@@ -311,8 +310,8 @@ int main()
 		lcd_print(1, 13,sensor_value[6], 1);
 		
 		pid = PID(value_on_line) ; 
-		
-		if (pid < -max)
+		 
+		if (pid <= -max)
 		{
 			pid = -max ;
 		}
@@ -341,7 +340,7 @@ int main()
 				velocity(speed,speed+pid);
 				lcd_print(2,5,speed,3);
 				lcd_print(2,9,speed+pid,3);
-				lcd_print(1, 14,pid, 3);
+				lcd_print(1, 14,pid, 4);
 			}
 			
 			if(pid < 0)
@@ -350,12 +349,8 @@ int main()
 				velocity(speed-pid,speed);
 				lcd_print(2,5,speed-pid,3);
 				lcd_print(2,9,speed,3);
-				lcd_cursor(2,1);
-				lcd_string("p");
-				lcd_print(2, 2,pid, 3);
+				lcd_print(1, 14,pid, 4);
 			}
 		}						
-		 
-	
 	}
 }
