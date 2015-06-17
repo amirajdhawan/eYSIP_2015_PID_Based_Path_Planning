@@ -14,6 +14,7 @@ void SetTunings();
 
 signed int PID(signed int position);
 
+unsigned int flag = 0;
 unsigned int data_received [7];
 unsigned int sensor_value[7];
 
@@ -241,7 +242,7 @@ signed int PID(signed int position)
 
 void SetTunings()
 {
-	Kp = 1;
+	Kp = 2;
 	Ki = 0;
 	Kd = 0;
 }
@@ -253,9 +254,9 @@ int main()
 	init_devices();
 	lcd_set_4bit();
 	lcd_init();
-	signed int max = 100 ; 
-	speed_L = 170;
-	speed_R = 150;
+	signed int max = 200 ; 
+	speed_L = 245;
+	speed_R = 255;
 	
 	while(1)
 	{
@@ -306,11 +307,11 @@ int main()
 			pid = max;
 		}
 		
-		if (senser_value_sum == 7)
+		/*if (senser_value_sum == 7)
 		{
 			forward();
 			velocity(0,0);
-		}
+		}*/
 		
 		else
 		{
@@ -325,18 +326,18 @@ int main()
 			if(pid > 0)
 			{
 				forward();
-				velocity(speed_L,speed_R+pid);
-				lcd_print(2,1,speed_L,3);
-				lcd_print(2,5,speed_R+pid,3);
+				velocity(speed_L-pid,speed_R);
+				lcd_print(2,1,speed_L-pid,3);
+				lcd_print(2,5,speed_R,3);
 				lcd_print(2,10,2000-pid, 4);
 			}
 			
 			if(pid < 0)
 			{
 				forward();
-				velocity(speed_L-pid,speed_R);
-				lcd_print(2,1,speed_L-pid,3);
-				lcd_print(2,5,speed_R,3);
+				velocity(speed_L,speed_R+pid);
+				lcd_print(2,1,speed_L,3);
+				lcd_print(2,5,speed_R+pid,3);
 				lcd_print(2,10,2000-pid, 4);
 			}
 		}					
