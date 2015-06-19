@@ -37,37 +37,35 @@ void spi_pin_config (void)
 	PORTB = PORTB | 0x07;
 }
 
-
 //Function to configure LCD port
 void lcd_port_config (void)
 {
- DDRC = DDRC | 0xF7; //all the LCD pin's direction set as output
- PORTC = PORTC & 0x80; // all the LCD pins are set to logic 0 except PORTC 7
+	DDRC = DDRC | 0xF7; //all the LCD pin's direction set as output
+	PORTC = PORTC & 0x80; // all the LCD pins are set to logic 0 except PORTC 7
 }
 
 //ADC pin configuration
 void adc_pin_config (void)
 {
- DDRF = 0x00; 
- PORTF = 0x00;
- DDRK = 0x00;
- PORTK = 0x00;
+	DDRF = 0x00; 
+	PORTF = 0x00;
+	DDRK = 0x00;
+	PORTK = 0x00;
 }
 
 //Function to configure ports to enable robot's motion
 void motion_pin_config (void) 
 {
- DDRA = DDRA | 0x0F;
- PORTA = PORTA & 0xF0;
- DDRL = DDRL | 0x18;   //Setting PL3 and PL4 pins as output for PWM generation
- PORTL = PORTL | 0x18; //PL3 and PL4 pins are for velocity control using PWM.
+	DDRA = DDRA | 0x0F;
+	PORTA = PORTA & 0xF0;
+	DDRL = DDRL | 0x18;   //Setting PL3 and PL4 pins as output for PWM generation
+	PORTL = PORTL | 0x18; //PL3 and PL4 pins are for velocity control using PWM.
 }
 
 //Function to Initialize PORTS
 void port_init()
 {
-	lcd_port_config();
-	adc_pin_config();
+	lcd_port_config();	adc_pin_config();
 	motion_pin_config();
 	spi_pin_config();	
 }
@@ -81,7 +79,10 @@ void spi_init(void)
 	SPDR = 0x00;
 }
 
-//Function to send byte to the slave microcontroller and get ADC channel data from the slave microcontroller
+/*
+  //Function Name -  spi_master_tx_and_rx
+  //Function to send byte to the slave microcontroller and get ADC channel data from the slave microcontroller
+*/
 unsigned char spi_master_tx_and_rx (unsigned char data)
 {
 	unsigned char rx_data = 0;
@@ -98,12 +99,13 @@ unsigned char spi_master_tx_and_rx (unsigned char data)
 	PORTB = PORTB | 0x01; // make SS high
 	return rx_data;
 }
-
-
-// Timer 5 initialized in PWM mode for velocity control
-// Prescale:256
-// PWM 8bit fast, TOP=0x00FF
-// Timer Frequency:225.000Hz
+/*
+  //Function Name -  Timer 5
+  //Timer 5 initialized in PWM mode for velocity control
+  // Prescale:256
+  // PWM 8bit fast, TOP=0x00FF
+  // Timer Frequency:225.000Hz
+*/
 void timer5_init()
 {
 	TCCR5B = 0x00;	//Stop
@@ -118,10 +120,13 @@ void timer5_init()
 	TCCR5A = 0xA9;	/*{COM5A1=1, COM5A0=0; COM5B1=1, COM5B0=0; COM5C1=1 COM5C0=0}
  					  For Overriding normal port functionality to OCRnA outputs.
 				  	  {WGM51=0, WGM50=1} Along With WGM52 in TCCR5B for Selecting FAST PWM 8-bit Mode*/
-	
+
 	TCCR5B = 0x0B;	//WGM12=1; CS12=0, CS11=1, CS10=1 (Prescaler=64)
 }
 
+/*
+  //Function Name -  adc_init
+*/
 void adc_init()
 {
 	ADCSRA = 0x00;
@@ -131,13 +136,16 @@ void adc_init()
 	ADCSRA = 0x86;		//ADEN=1 --- ADIE=1 --- ADPS2:0 = 1 1 0
 }
 
-//Function For ADC Conversion
+/*
+  //Function Name -  ADC_Conversion
+  //Logic - convert sensor values to digital
+*/
 unsigned char ADC_Conversion(unsigned char Ch) 
 {
 	unsigned char a;
 	if(Ch>7)
 	{
-		ADCSRB = 0x08;
+ 		ADCSRB = 0x08;
 	}
 	Ch = Ch & 0x07;  			
 	ADMUX= 0x20| Ch;	   		
@@ -149,7 +157,10 @@ unsigned char ADC_Conversion(unsigned char Ch)
 	return a;
 }
 
-//Function To Print Sensor Values At Desired Row And Coloumn Location on LCD
+/*
+  //Function Name -  print_sensor
+  //Logic - print values on desired row and column
+*/
 int print_sensor(char row, char coloumn,unsigned char channel)
 {
 	
@@ -159,28 +170,34 @@ int print_sensor(char row, char coloumn,unsigned char channel)
 	return ADC_Value ;
 }
 
-//Function for velocity control
+/*
+  //Function Name -  velocity
+  //Logic - control velocity of motors
+*/
 void velocity (unsigned char left_motor, unsigned char right_motor)
 {
 	OCR5AL = (unsigned char)left_motor;
 	OCR5BL = (unsigned char)right_motor;
 }
 
-//Function used for setting motor's direction
+/*
+  //Function Name -  motion set
+  //Logic - assign motion direction
+*/
 void motion_set (unsigned char Direction)
 {
- unsigned char PortARestore = 0;
+	unsigned char PortARestore = 0;
 
- Direction &= 0x0F; 		// removing upper nibbel for the protection
- PortARestore = PORTA; 		// reading the PORTA original status
- PortARestore &= 0xF0; 		// making lower direction nibbel to 0
- PortARestore |= Direction; // adding lower nibbel for forward command and restoring the PORTA status
- PORTA = PortARestore; 		// executing the command
+	Direction &= 0x0F; 		// removing upper nibbel for the protection
+	PortARestore = PORTA; 		// reading the PORTA original status
+	PortARestore &= 0xF0; 		// making lower direction nibbel to 0
+	PortARestore |= Direction; // adding lower nibbel for forward command and restoring the PORTA status
+	PORTA = PortARestore; 		// executing the command
 }
 
 void forward (void) 
 {
-  motion_set (0x06);
+	motion_set (0x06);
 }
 
 void left (void) //Left wheel backward, Right wheel forward
@@ -218,6 +235,10 @@ void stop (void)
   motion_set (0x00);
 }
 
+/*
+  //Function Name -  init_devices
+  //Logic - intitialization
+*/
 void init_devices (void)
 {
  	cli(); //Clears the global interrupts
@@ -227,7 +248,12 @@ void init_devices (void)
 	timer5_init();
 	sei();   //Enables the global interrupts
 }
-// Return online values
+/*
+  //Function Name -  sensor_on_line
+  //Input - semsor raw values
+  //Output - 0 or 1
+  //Logic - compare with threshold value of white line if it is online then return 1 else 0
+*/
 sensor_on_line(int sensor)
 {
 	if(sensor < 20)
@@ -237,21 +263,20 @@ sensor_on_line(int sensor)
 	
 }
 
-// Function for PID value Or correction value
+/*
+  //Function Name -  PID
+  //Input - error corresponding to sensor which is on line
+  //Output - correction value which will be added in left and right motor speed
+  //Logic - calculate P,I and D errors individualy and add them.
+*/
 signed int PID(signed int position)
 {
 	
-	// The "proportional" term should be 0 when we are on the line.
-	proportional = position - setpoint;
-		
-	// Compute the derivative (change) and integral (sum) of the
-	// position.
-	integral += proportional;
+	proportional = position - setpoint; // The "proportional" term should be 0 when we are on the white line.
+	integral += proportional;  // Compute the integral (sum) of the position using proportional error.
+	derivative = proportional - last_proportional; //compute derivative using past and present proportional value.
 	
-	derivative = proportional - last_proportional;
-	
-	// Remember the last position.
-	last_proportional = proportional;
+	last_proportional = proportional; // Remember the last position.
 	
 	//lcd_print(2,1,proportional,3);
 	//lcd_print(2,5,integral,3);
@@ -263,15 +288,25 @@ signed int PID(signed int position)
 	
 }
 
+/*
+  //Function Name -  SetTunings()
+  //Input - Nothing
+  //Output - set Kp,Ki and Kd values for further use.
+  //Logic - assign Kp, ki and Kd values manually.
+*/
 void SetTunings()
 {
-	Kp = 7;
-	Ki = 0.8;
-	Kd = 4;
+	Kp = 5;
+	Ki = 0;
+	Kd = 1;
 }
 
-
-//Main Function
+/*
+  //Function Name -  Main
+  //Input - Nothing
+  //Output - control left and right Motor speeds
+  //Logic - add pid correction error here.
+*/
 int main()
 {
 	init_devices();
@@ -284,13 +319,13 @@ int main()
 	while(1)
 	{
 
-		data_received [0] = ADC_Conversion(3);	//Getting data of Left WL Sensor
-		data_received [1] = ADC_Conversion(2);	//Getting data of Center WL Sensor
-		data_received [2] = ADC_Conversion(1);	//Getting data of Right WL Sensor
-        data_received [3] = spi_master_tx_and_rx(0);
-        data_received [4] = spi_master_tx_and_rx(1);
-        data_received [5] = spi_master_tx_and_rx(2);
-		data_received [6] = spi_master_tx_and_rx(3);
+		data_received [0] = ADC_Conversion(3);	//Getting data of sensor-0 WL Sensor
+		data_received [1] = ADC_Conversion(2);	//Getting data of sensor-1 WL Sensor
+		data_received [2] = ADC_Conversion(1);	//Getting data of sensor-2 WL Sensor
+        data_received [3] = spi_master_tx_and_rx(0); //Getting data of sensor-3 WL sensor connected to slave microcontroller.
+        data_received [4] = spi_master_tx_and_rx(1); //Getting data of sensor-4 WL sensor connected to slave microcontroller.
+        data_received [5] = spi_master_tx_and_rx(2); //Getting data of sensor-5 WL sensor connected to slave microcontroller.
+		data_received [6] = spi_master_tx_and_rx(3); //Getting data of sensor-6 WL sensor connected to slave microcontroller.
 		
 		/*lcd_print(1, 1,data_received [0], 1);
 		lcd_print(1, 3,data_received [1], 1);
