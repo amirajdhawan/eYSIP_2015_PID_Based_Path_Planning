@@ -22,7 +22,7 @@ unsigned char ADC_Conversion(unsigned char);
 unsigned char ADC_Value;
 
 signed int senser_value_sum;
-
+signed int reading;
 signed int value_on_line;
 signed int position,last_proportional,setpoint=0;
 signed int speed_L,speed_R;
@@ -254,14 +254,12 @@ void init_devices (void)
   //Output - 0 or 1
   //Logic - compare with threshold value of white line if it is online then return 1 else 0
 */
-sensor_on_line(int sensor)
+/*sensor_on_line(int sensor)
 {
-	if(sensor < 20)
-		return 1;
-	else
-	    return 0;	
-	
-}
+	reading = sensor/10;
+	reading = 10*reading;
+	return 	reading;
+}*/
 
 /*
   //Function Name -  PID
@@ -312,9 +310,9 @@ int main()
 	init_devices();
 	lcd_set_4bit();
 	lcd_init();
-	signed int max = 200 ; 
-	speed_L = 230;
-	speed_R = 240;
+	signed int max = 250 ; 
+	speed_L = 255;
+	speed_R = 255;
 	
 	while(1)
 	{
@@ -335,7 +333,7 @@ int main()
 		lcd_print(1, 11,data_received [5], 1);
 		lcd_print(1, 13,data_received [6], 1);
         */
-		SetTunings();
+		/*SetTunings();
 		
 		sensor_value[0] = sensor_on_line(data_received [0]);
 		sensor_value[1] = sensor_on_line(data_received [1]);
@@ -344,20 +342,20 @@ int main()
 		sensor_value[4] = sensor_on_line(data_received [4]);
 		sensor_value[5] = sensor_on_line(data_received [5]);
 		sensor_value[6] = sensor_on_line(data_received [6]);
-		
-		
-		/*senser_value_sum = data_received [0] + data_received [1] + data_received [2] + data_received [3] + data_received [4] + data_received [5] + data_received [6] ;
-		
-		weight = 10*((-3)*data_received [0] + (-2)*data_received [1] + (-1)*data_received [2] + (0)*data_received [3] + (1)*data_received [4] + (2)*data_received [5] + (3)*data_received [6]);
 		*/
 		
-		senser_value_sum = sensor_value[0] + sensor_value[1] + sensor_value[2] + sensor_value[3] + sensor_value[4] + sensor_value[5] + sensor_value[6] ;
+		senser_value_sum = data_received [0] + data_received [1] + data_received [2] + data_received [3] + data_received [4] + data_received [5] + data_received [6] ;
+		
+		weight = ((-3)*data_received [0] + (-2)*data_received [1] + (-1)*data_received [2] + (0)*data_received [3] + (1)*data_received [4] + (2)*data_received [5] + (3)*data_received [6]);
+		
+		
+		/*senser_value_sum = sensor_value[0] + sensor_value[1] + sensor_value[2] + sensor_value[3] + sensor_value[4] + sensor_value[5] + sensor_value[6] ;
 		
 		weight = 10*((-3)*sensor_value[0] + (-2)*sensor_value[1]+ (-1)*sensor_value[2] + (0)*sensor_value[3] + (1)*sensor_value[4] + (2)*sensor_value[5] + (3)*sensor_value[6]);
-		
+		*/
 		//control variable
 		
-		value_on_line = weight/senser_value_sum ;
+		value_on_line = weight/10 ;
 		
 		lcd_print(1, 14,500-value_on_line, 3);
 		
@@ -383,7 +381,7 @@ int main()
 			pid = max;
 		}
 		
-		if (senser_value_sum == 0)
+		if (senser_value_sum>750)
 		{
 			stop();
 		}
@@ -395,16 +393,16 @@ int main()
 				velocity(speed_L,speed_R);
 				lcd_print(2,1,speed_L,3);
 				lcd_print(2,5,speed_R,3);
-				lcd_print(2,10,2000-pid, 4);
+				lcd_print(2,10,2000-pid,4);
 			}
 			
-			if(pid<0)
+			if(pid>0)
 			{
 				//if(pid > -80)
 				{
 					forward();
-					velocity(speed_L+pid,speed_R);
-					lcd_print(2,1,speed_L+pid,3);
+					velocity(speed_L-pid,speed_R);
+					lcd_print(2,1,speed_L-pid,3);
 					lcd_print(2,5,speed_R,3);
 					lcd_print(2,10,2000-pid, 4);
 				}
@@ -419,15 +417,15 @@ int main()
 				
 			}
 			
-			if (pid>0)
+			if (pid<0)
 			{
 				//if(pid<80)
 				{
 					forward();
-					velocity(speed_L,speed_R-pid);
+					velocity(speed_L,speed_R+pid);
 					lcd_print(2,1,speed_L,3);
-					lcd_print(2,5,speed_R-pid,3);
-					lcd_print(2,10,2000-pid, 4);
+					lcd_print(2,5,speed_R+pid,3);
+					lcd_print(2,10,2000+pid, 4);
 				}
 				/*else
 				{
