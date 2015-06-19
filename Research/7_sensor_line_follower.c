@@ -284,13 +284,13 @@ int main()
 	while(1)
 	{
 
-		data_received [0] = ADC_Conversion(3);	//Getting data of Left WL Sensor
-		data_received [1] = ADC_Conversion(2);	//Getting data of Center WL Sensor
-		data_received [2] = ADC_Conversion(1);	//Getting data of Right WL Sensor
-        data_received [3] = spi_master_tx_and_rx(0);
-        data_received [4] = spi_master_tx_and_rx(1);
-        data_received [5] = spi_master_tx_and_rx(2);
-		data_received [6] = spi_master_tx_and_rx(3);
+		data_received [0] = ADC_Conversion(3);	//Getting data of sensor-0 WL Sensor
+		data_received [1] = ADC_Conversion(2);	//Getting data of sensor-1 WL Sensor
+		data_received [2] = ADC_Conversion(1);	//Getting data of sensor-2 WL Sensor
+        	data_received [3] = spi_master_tx_and_rx(0);    //Getting data of sensor-3 WL sensor connected to slave microcontroller
+        	data_received [4] = spi_master_tx_and_rx(1);	//Getting data of sensor-3 WL sensor connected to slave microcontroller
+        	data_received [5] = spi_master_tx_and_rx(2);	//Getting data of sensor-3 WL sensor connected to slave microcontroller
+		data_received [6] = spi_master_tx_and_rx(3);	//Getting data of sensor-3 WL sensor connected to slave microcontroller
 		
 		/*lcd_print(1, 1,data_received [0], 1);
 		lcd_print(1, 3,data_received [1], 1);
@@ -300,8 +300,11 @@ int main()
 		lcd_print(1, 11,data_received [5], 1);
 		lcd_print(1, 13,data_received [6], 1);
         */
-		SetTunings();
-		
+        
+		SetTunings(); //sets the values of Kp, Ki and Kd.
+	
+		/*taking the digital sensor value as input using data_recieved array for sensor_on_line() function
+		and gives thresholded output in form of 0 and 1 */
 		sensor_value[0] = sensor_on_line(data_received [0]);
 		sensor_value[1] = sensor_on_line(data_received [1]);
 		sensor_value[2] = sensor_on_line(data_received [2]);
@@ -316,12 +319,13 @@ int main()
 		weight = 10*((-3)*data_received [0] + (-2)*data_received [1] + (-1)*data_received [2] + (0)*data_received [3] + (1)*data_received [4] + (2)*data_received [5] + (3)*data_received [6]);
 		*/
 		
+		//sums all the sensor value, maximum sum = 7 and minimum sum = 0
 		senser_value_sum = sensor_value[0] + sensor_value[1] + sensor_value[2] + sensor_value[3] + sensor_value[4] + sensor_value[5] + sensor_value[6] ;
 		
+		//pid = PID(weight); 
 		weight = 100*((-3)*sensor_value[0] + (-2)*sensor_value[1]+ (-1)*sensor_value[2] + (0)*sensor_value[3] + (1)*sensor_value[4] + (2)*sensor_value[5] + (3)*sensor_value[6]);
 		
 		//control variable
-		
 		value_on_line = weight/senser_value_sum ;
 		
 		lcd_print(1, 14,500-value_on_line, 3);
@@ -336,8 +340,8 @@ int main()
 		*/
 		
 		pid  =	PID(value_on_line) ;
-		//pid = PID(weight); 
-		 
+		
+		//sets the pid value to max if it goes ahead of max on both side of line
 		if (pid <= -max)
 		{
 			pid = -max ;
@@ -348,13 +352,13 @@ int main()
 			pid = max;
 		}
 		
-		if (senser_value_sum == 0)
+		if (senser_value_sum == 0) //bot will stop for when all the sensors are on black 
 		{
 			stop();
 		}
 		else
 		{
-			if (pid < 0)
+			if (pid == 0) //if correction is zero bot will move straight.
 			{
 				forward();
 				velocity(speed_L,speed_R);
@@ -362,7 +366,8 @@ int main()
 				lcd_print(2,5,speed_R,3);
 				lcd_print(2,10,2000-pid, 4);
 			}
-			
+			/* When the correction is negative(i.e. bot is drifting towards left) but greater than -100 , 
+			so bot will move forward with left motor getting more speed. */
 			if(pid<0)
 			{
 				if(pid > -100)
