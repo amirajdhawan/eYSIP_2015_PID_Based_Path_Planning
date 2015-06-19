@@ -333,8 +333,8 @@ int main()
 		lcd_print(1, 11,data_received [5], 1);
 		lcd_print(1, 13,data_received [6], 1);
         */
-		/*SetTunings();
-		
+		SetTunings();
+		/*
 		sensor_value[0] = sensor_on_line(data_received [0]);
 		sensor_value[1] = sensor_on_line(data_received [1]);
 		sensor_value[2] = sensor_on_line(data_received [2]);
