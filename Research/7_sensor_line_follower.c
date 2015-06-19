@@ -24,7 +24,7 @@ unsigned char ADC_Value;
 signed int senser_value_sum;
 
 signed int value_on_line;
-signed int position,last_proportional,center=0;
+signed int position,last_proportional,setpoint=12;
 signed int speed_L,speed_R;
 signed int proportional,avg_senser;
 signed int correction,pid,weight;
@@ -242,9 +242,8 @@ signed int PID(signed int position)
 {
 	
 	// The "proportional" term should be 0 when we are on the line.
-	proportional = position - center;
-	
-	
+	proportional = position - setpoint;
+		
 	// Compute the derivative (change) and integral (sum) of the
 	// position.
 	integral += proportional;
@@ -253,12 +252,6 @@ signed int PID(signed int position)
 	
 	// Remember the last position.
 	last_proportional = proportional;
-	
-	// Compute the difference between the two motor power settings,
-	// m1 - m2.  If this is a positive number the robot will turn
-	// to the right.  If it is a negative number, the robot will
-	// turn to the left, and the magnitude of the number determines
-	// the sharpness of the turn.
 	
 	//lcd_print(2,1,proportional,3);
 	//lcd_print(2,5,integral,3);
@@ -272,7 +265,7 @@ signed int PID(signed int position)
 
 void SetTunings()
 {
-	Kp = 5;
+	Kp = 4.5;
 	Ki = 0;
 	Kd = 1;
 }
@@ -299,14 +292,14 @@ int main()
         data_received [5] = spi_master_tx_and_rx(2);
 		data_received [6] = spi_master_tx_and_rx(3);
 		
-		lcd_print(1, 1,sensor_value[0], 1);
-		lcd_print(1, 3,sensor_value[1], 1);
-		lcd_print(1, 5,sensor_value[2], 1);
-		lcd_print(1, 7,sensor_value[3], 1);
-		lcd_print(1, 9,sensor_value[4], 1);
-		lcd_print(1, 11,sensor_value[5], 1);
-		lcd_print(1, 13,sensor_value[6], 1);
-       
+		/*lcd_print(1, 1,data_received [0], 1);
+		lcd_print(1, 3,data_received [1], 1);
+		lcd_print(1, 5,data_received [2], 1);
+		lcd_print(1, 7,data_received [3], 1);
+		lcd_print(1, 9,data_received [4], 1);
+		lcd_print(1, 11,data_received [5], 1);
+		lcd_print(1, 13,data_received [6], 1);
+        */
 		SetTunings();
 		
 		sensor_value[0] = sensor_on_line(data_received [0]);
@@ -317,48 +310,51 @@ int main()
 		sensor_value[5] = sensor_on_line(data_received [5]);
 		sensor_value[6] = sensor_on_line(data_received [6]);
 		
+		
 		/*senser_value_sum = data_received [0] + data_received [1] + data_received [2] + data_received [3] + data_received [4] + data_received [5] + data_received [6] ;
 		
-		weight = 500*((-1)*data_received [0] + (-1)*data_received [1] + (-1)*data_received [2] + (0)*data_received [3] + data_received [4] + data_received [5] + data_received [6]);
+		weight = 10*((-3)*data_received [0] + (-2)*data_received [1] + (-1)*data_received [2] + (0)*data_received [3] + (1)*data_received [4] + (2)*data_received [5] + (3)*data_received [6]);
 		*/
 		
 		senser_value_sum = sensor_value[0] + sensor_value[1] + sensor_value[2] + sensor_value[3] + sensor_value[4] + sensor_value[5] + sensor_value[6] ;
 		
-		weight = 10*((-3)*sensor_value[0] + (-2)*sensor_value[1]+ (-1)*sensor_value[2] + (0)*sensor_value[3] + (1)*sensor_value[4] + (2)*sensor_value[5] + (3)*sensor_value[6]);
+		weight = 100*((-3)*sensor_value[0] + (-2)*sensor_value[1]+ (-1)*sensor_value[2] + (0)*sensor_value[3] + (1)*sensor_value[4] + (2)*sensor_value[5] + (3)*sensor_value[6]);
 		
 		//control variable
+		
 		value_on_line = weight/senser_value_sum ;
 		
 		lcd_print(1, 14,500-value_on_line, 3);
 		
-		lcd_print(1, 1,sensor_value[0], 1);
+		/*lcd_print(1, 1,sensor_value[0], 1);
 		lcd_print(1, 3,sensor_value[1], 1);
 		lcd_print(1, 5,sensor_value[2], 1);
 		lcd_print(1, 7,sensor_value[3], 1);
 		lcd_print(1, 9,sensor_value[4], 1);
 		lcd_print(1, 11,sensor_value[5], 1);
 		lcd_print(1, 13,sensor_value[6], 1);
+		*/
 		
-		pid  =	PID(value_on_line) ; 
+		pid  =	PID(value_on_line) ;
+		//pid = PID(weight); 
 		 
 		if (pid <= -max)
 		{
 			pid = -max ;
 		}
+		
 		if (pid >= max)
 		{
 			pid = max;
 		}
 		
-		if (senser_value_sum == 7)
+		if (senser_value_sum == 0)
 		{
-			forward();
-			velocity(0,0);
+			stop();
 		}
-		
 		else
 		{
-			if (pid == 0)
+			if (pid < 0)
 			{
 				forward();
 				velocity(speed_L,speed_R);
@@ -366,7 +362,8 @@ int main()
 				lcd_print(2,5,speed_R,3);
 				lcd_print(2,10,2000-pid, 4);
 			}
-			if(pid < 0)
+			
+			if(pid<0)
 			{
 				if(pid > -100)
 				{
@@ -387,7 +384,7 @@ int main()
 				
 			}
 			
-			if(pid > 0)
+			if (pid>0)
 			{
 				if(pid<100)
 				{
