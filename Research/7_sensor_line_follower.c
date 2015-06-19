@@ -295,8 +295,8 @@ signed int PID(signed int position)
 void SetTunings()
 {
 	Kp = 5;
-	Ki = 0;
-	Kd = 1;
+	Ki = 0.1;
+	Kd = 2;
 }
 
 /*
@@ -398,7 +398,7 @@ int main()
 			
 			if(pid>0)
 			{
-				//if(pid > -80)
+				if(pid < 240)
 				{
 					forward();
 					velocity(speed_L-pid,speed_R);
@@ -406,20 +406,20 @@ int main()
 					lcd_print(2,5,speed_R,3);
 					lcd_print(2,10,2000-pid, 4);
 				}
-				/*else
+				else
 				{
 					left();
-					velocity(speed_L+pid,speed_R);
-					lcd_print(2,1,speed_L+pid,3);
+					velocity(speed_L,speed_R);
+					lcd_print(2,1,speed_L,3);
 					lcd_print(2,5,speed_R,3);
 					lcd_print(2,10,2000-pid, 4);
-				}*/
+				}
 				
 			}
 			
 			if (pid<0)
 			{
-				//if(pid<80)
+				if(pid>-240)
 				{
 					forward();
 					velocity(speed_L,speed_R+pid);
@@ -427,14 +427,14 @@ int main()
 					lcd_print(2,5,speed_R+pid,3);
 					lcd_print(2,10,2000+pid, 4);
 				}
-				/*else
+				else
 				{
 					right();
-					velocity(speed_L,speed_R-pid);
+					velocity(speed_L,speed_R);
 					lcd_print(2,1,speed_L,3);
 					lcd_print(2,5,speed_R-pid,3);
 					lcd_print(2,10,2000-pid, 4);
-				}*/
+				}
 				
 			}
 		}					
