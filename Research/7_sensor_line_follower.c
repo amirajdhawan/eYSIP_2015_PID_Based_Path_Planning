@@ -14,6 +14,9 @@ void SetTunings();
 
 signed int PID(signed int position);
 
+
+unsigned char data; //to store received data from UDR1
+
 unsigned int flag = 0;
 unsigned int data_received [7];
 unsigned int sensor_value[7];
@@ -29,7 +32,7 @@ signed int speed_L,speed_R;
 signed int proportional,avg_senser;
 signed int correction,pid,weight;
 
-float Kp, Ki ,Kd ,integral,derivative ;
+float Kp=3, Ki=0 ,Kd=1 ,integral,derivative ;
 
 void spi_pin_config (void)
 {
@@ -210,29 +213,62 @@ void right (void) //Left wheel forward, Right wheel backward
 	motion_set(0x0A);
 }
 
-void soft_left (void) //Left wheel stationary, Right wheel forward
-{
-	motion_set(0x04);
-}
-
-void soft_right (void) //Left wheel forward, Right wheel is stationary
-{
-	motion_set(0x02);
-}
-
-void soft_left_2 (void) //Left wheel backward, right wheel stationary
-{
-	motion_set(0x01);
-}
-
-void soft_right_2 (void) //Left wheel stationary, Right wheel backward
-{
-	motion_set(0x08);
-}
-
 void stop (void)
 {
   motion_set (0x00);
+}
+
+//Function To Initialize UART0
+// desired baud rate:9600
+// actual baud rate:9600 (error 0.0%)
+// char size: 8 bit
+// parity: Disabled
+void uart0_init(void)
+{
+	UCSR0B = 0x00; //disable while setting baud rate
+	UCSR0A = 0x00;
+	UCSR0C = 0x06;
+	UBRR0L = 0x5F; //set baud rate lo
+	UBRR0H = 0x00; //set baud rate hi
+	UCSR0B = 0x98;
+}
+
+
+SIGNAL(SIG_USART0_RECV) 		// ISR for receive complete interrupt
+{
+	data = UDR0; 				//making copy of data from UDR0 in 'data' variable
+
+	UDR0 = data; 				//echo data back to PC
+
+	if(data == 0x50) //ASCII value of P
+	{
+		Kp=Kp+0.1;
+	}
+
+	if(data == 0x70) //ASCII value of p
+	{
+		Kp=Kp-0.1;
+	}
+
+	if(data == 0x49) //ASCII value of I
+	{
+		Ki=Ki+0.1;
+	}
+
+	if(data == 0x69) //ASCII value of i
+	{
+		Ki=Ki-0.1;
+	}
+
+	if(data == 0x44) //ASCII value of D
+	{
+		Kd=Kd+0.1;
+	}
+
+	if(data == 0x64) //ASCII value of d
+	{
+		Kd=Kd-0.1;
+	}
 }
 
 /*
@@ -246,6 +282,7 @@ void init_devices (void)
 	port_init();
 	adc_init();
 	timer5_init();
+	uart0_init(); //Initailize UART1 for serial communiaction
 	sei();   //Enables the global interrupts
 }
 /*
@@ -294,9 +331,9 @@ signed int PID(signed int position)
 */
 void SetTunings()
 {
-	Kp = 5;
-	Ki = 0.1;
-	Kd = 2;
+	lcd_print(1,1,10*Kp,2);
+	lcd_print(1,4,10*Ki,2);
+	lcd_print(1,7,10*Kd,2);
 }
 
 /*
@@ -432,10 +469,9 @@ int main()
 					right();
 					velocity(speed_L,speed_R);
 					lcd_print(2,1,speed_L,3);
-					lcd_print(2,5,speed_R-pid,3);
+					lcd_print(2,5,speed_R,3);
 					lcd_print(2,10,2000-pid, 4);
 				}
-				
 			}
 		}					
 	}
