@@ -32,7 +32,7 @@ signed int speed_L,speed_R;
 signed int proportional,avg_senser;
 signed int correction,pid,weight;
 
-float Kp=3, Ki=0 ,Kd=1 ,integral,derivative ;
+float Kp=0.3, Ki=0 ,Kd=0.1 ,integral,derivative ;
 
 void spi_pin_config (void)
 {
@@ -242,32 +242,32 @@ SIGNAL(SIG_USART0_RECV) 		// ISR for receive complete interrupt
 
 	if(data == 0x50) //ASCII value of P
 	{
-		Kp=Kp+0.1;
+		Kp=Kp+0.01;
 	}
 
 	if(data == 0x70) //ASCII value of p
 	{
-		Kp=Kp-0.1;
+		Kp=Kp-0.01;
 	}
 
 	if(data == 0x49) //ASCII value of I
 	{
-		Ki=Ki+0.1;
+		Ki=Ki+0.01;
 	}
 
 	if(data == 0x69) //ASCII value of i
 	{
-		Ki=Ki-0.1;
+		Ki=Ki-0.01;
 	}
 
 	if(data == 0x44) //ASCII value of D
 	{
-		Kd=Kd+0.1;
+		Kd=Kd+0.01;
 	}
 
 	if(data == 0x64) //ASCII value of d
 	{
-		Kd=Kd-0.1;
+		Kd=Kd-0.01;
 	}
 }
 
@@ -291,12 +291,12 @@ void init_devices (void)
   //Output - 0 or 1
   //Logic - compare with threshold value of white line if it is online then return 1 else 0
 */
-/*sensor_on_line(int sensor)
+sensor_on_line(int sensor)
 {
 	reading = sensor/10;
 	reading = 10*reading;
 	return 	reading;
-}*/
+}
 
 /*
   //Function Name -  PID
@@ -309,13 +309,21 @@ signed int PID(signed int position)
 	
 	proportional = position - setpoint; // The "proportional" term should be 0 when we are on the white line.
 	integral += proportional;  // Compute the integral (sum) of the position using proportional error.
+	if (integral < -200 )
+	{
+		integral = -200 ;
+	}
+	if (integral > 200)
+	{
+		integral = 200 ;
+	}
 	derivative = proportional - last_proportional; //compute derivative using past and present proportional value.
 	
 	last_proportional = proportional; // Remember the last position.
 	
-	//lcd_print(2,1,proportional,3);
-	//lcd_print(2,5,integral,3);
-	//lcd_print(2,9,derivative,3);
+	lcd_print(1,10,500-proportional,3);
+	lcd_print(2,9,500-integral,3);
+	lcd_print(2,14,500-derivative,3);
 	
 	correction = proportional*Kp + integral*Ki + derivative*Kd ;
 	
@@ -331,9 +339,9 @@ signed int PID(signed int position)
 */
 void SetTunings()
 {
-	lcd_print(1,1,10*Kp,2);
-	lcd_print(1,4,10*Ki,2);
-	lcd_print(1,7,10*Kd,2);
+	lcd_print(1,1,100*Kp,2);
+	lcd_print(1,4,100*Ki,2);
+	lcd_print(1,7,100*Kd,2);
 }
 
 /*
@@ -347,9 +355,9 @@ int main()
 	init_devices();
 	lcd_set_4bit();
 	lcd_init();
-	signed int max = 250 ; 
-	speed_L = 255;
-	speed_R = 255;
+	signed int max = 200 ; 
+	speed_L = 200;
+	speed_R = 200;
 	
 	while(1)
 	{
@@ -371,7 +379,7 @@ int main()
 		lcd_print(1, 13,data_received [6], 1);
         */
 		SetTunings();
-		/*
+		
 		sensor_value[0] = sensor_on_line(data_received [0]);
 		sensor_value[1] = sensor_on_line(data_received [1]);
 		sensor_value[2] = sensor_on_line(data_received [2]);
@@ -379,22 +387,22 @@ int main()
 		sensor_value[4] = sensor_on_line(data_received [4]);
 		sensor_value[5] = sensor_on_line(data_received [5]);
 		sensor_value[6] = sensor_on_line(data_received [6]);
-		*/
 		
-		senser_value_sum = data_received [0] + data_received [1] + data_received [2] + data_received [3] + data_received [4] + data_received [5] + data_received [6] ;
+		
+		/*senser_value_sum = data_received [0] + data_received [1] + data_received [2] + data_received [3] + data_received [4] + data_received [5] + data_received [6] ;
 		
 		weight = ((-3)*data_received [0] + (-2)*data_received [1] + (-1)*data_received [2] + (0)*data_received [3] + (1)*data_received [4] + (2)*data_received [5] + (3)*data_received [6]);
-		
-		
-		/*senser_value_sum = sensor_value[0] + sensor_value[1] + sensor_value[2] + sensor_value[3] + sensor_value[4] + sensor_value[5] + sensor_value[6] ;
-		
-		weight = 10*((-3)*sensor_value[0] + (-2)*sensor_value[1]+ (-1)*sensor_value[2] + (0)*sensor_value[3] + (1)*sensor_value[4] + (2)*sensor_value[5] + (3)*sensor_value[6]);
 		*/
+		
+		senser_value_sum = sensor_value[0] + sensor_value[1] + sensor_value[2] + sensor_value[3] + sensor_value[4] + sensor_value[5] + sensor_value[6] ;
+		
+		weight = ((-3)*sensor_value[0] + (-2)*sensor_value[1]+ (-1)*sensor_value[2] + (0)*sensor_value[3] + (1)*sensor_value[4] + (2)*sensor_value[5] + (3)*sensor_value[6]);
+		
 		//control variable
 		
-		value_on_line = weight/10 ;
+		value_on_line = weight ;
 		
-		lcd_print(1, 14,500-value_on_line, 3);
+		//lcd_print(1, 14,500-value_on_line, 3);
 		
 		/*lcd_print(1, 1,sensor_value[0], 1);
 		lcd_print(1, 3,sensor_value[1], 1);
@@ -424,54 +432,54 @@ int main()
 		}
 		else
 		{
-			if (pid == 0)
+			if (pid < 20 && pid >-20)
 			{
 				forward();
 				velocity(speed_L,speed_R);
 				lcd_print(2,1,speed_L,3);
 				lcd_print(2,5,speed_R,3);
-				lcd_print(2,10,2000-pid,4);
+				lcd_print(1,13,5000-pid,4);
 			}
 			
-			if(pid>0)
+			if(pid>20)
 			{
-				if(pid < 240)
+				//if(pid < 200)
 				{
 					forward();
 					velocity(speed_L-pid,speed_R);
 					lcd_print(2,1,speed_L-pid,3);
 					lcd_print(2,5,speed_R,3);
-					lcd_print(2,10,2000-pid, 4);
+					lcd_print(1,13,5000+pid, 4);
 				}
-				else
+				/*else
 				{
 					left();
-					velocity(speed_L,speed_R);
-					lcd_print(2,1,speed_L,3);
-					lcd_print(2,5,speed_R,3);
-					lcd_print(2,10,2000-pid, 4);
-				}
+					velocity(speed_L-50,speed_R-50);
+					lcd_print(2,1,speed_L-50,3);
+					lcd_print(2,5,speed_R-50,3);
+					lcd_print(1,13,5000+pid, 4);					
+				}*/
 				
 			}
 			
-			if (pid<0)
+			if (pid<-20)
 			{
-				if(pid>-240)
+				//if(pid>-200)
 				{
 					forward();
 					velocity(speed_L,speed_R+pid);
 					lcd_print(2,1,speed_L,3);
 					lcd_print(2,5,speed_R+pid,3);
-					lcd_print(2,10,2000+pid, 4);
+					lcd_print(1,13,5000+pid, 4);
 				}
-				else
+				/*else
 				{
 					right();
-					velocity(speed_L,speed_R);
-					lcd_print(2,1,speed_L,3);
-					lcd_print(2,5,speed_R,3);
-					lcd_print(2,10,2000-pid, 4);
-				}
+					velocity(speed_L-50,speed_R-50);
+					lcd_print(2,1,speed_L-50,3);
+					lcd_print(2,5,speed_R-50,3);
+					lcd_print(1,13,5000+pid, 4);
+				}*/					
 			}
 		}					
 	}
