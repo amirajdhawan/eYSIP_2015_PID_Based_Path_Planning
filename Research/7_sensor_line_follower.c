@@ -30,9 +30,9 @@ signed int value_on_line;
 signed int position,last_proportional,setpoint=0;
 signed int speed_L,speed_R;
 signed int proportional,avg_senser;
-signed int correction,pid,weight;
+signed int correction,weight,pid;
 
-float Kp=0.4, Ki=0 ,Kd=0.5 ,integral,derivative ;
+float Kp=0.4, Ki=0 ,Kd=0.5 ,integral,derivative;
 
 void spi_pin_config (void)
 {
@@ -308,7 +308,7 @@ signed int PID(signed int position)
 {
 	
 	proportional = position - setpoint; // The "proportional" term should be 0 when we are on the white line.
-	integral += proportional/10;  // Compute the integral (sum) of the position using proportional error.
+	integral += proportional;  // Compute the integral (sum) of the position using proportional error.
 	if (integral < -200 )
 	{
 		integral = -200 ;
@@ -413,7 +413,9 @@ int main()
 		lcd_print(1, 13,sensor_value[6], 1);
 		*/
 		
-		pid  =	PID(value_on_line) ;
+		
+		pid = PID(weight);
+		
 		//pid = PID(weight); 
 		 
 		if (pid <= -max)
@@ -499,6 +501,6 @@ int main()
 					
 				}					
 			}
-		}					
+		}				
 	}
 }
