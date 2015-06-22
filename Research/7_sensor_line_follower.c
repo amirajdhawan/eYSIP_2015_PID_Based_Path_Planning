@@ -32,7 +32,7 @@ signed int speed_L,speed_R;
 signed int proportional,avg_senser;
 signed int correction,pid,weight;
 
-float Kp=0.3, Ki=0 ,Kd=0.1 ,integral,derivative ;
+float Kp=0.4, Ki=0 ,Kd=0.5 ,integral,derivative ;
 
 void spi_pin_config (void)
 {
@@ -308,7 +308,7 @@ signed int PID(signed int position)
 {
 	
 	proportional = position - setpoint; // The "proportional" term should be 0 when we are on the white line.
-	integral += proportional;  // Compute the integral (sum) of the position using proportional error.
+	integral += proportional/10;  // Compute the integral (sum) of the position using proportional error.
 	if (integral < -200 )
 	{
 		integral = -200 ;
@@ -355,9 +355,9 @@ int main()
 	init_devices();
 	lcd_set_4bit();
 	lcd_init();
-	signed int max = 200 ; 
-	speed_L = 200;
-	speed_R = 200;
+	signed int max = 250 ; 
+	speed_L = 250;
+	speed_R = 250;
 	
 	while(1)
 	{
@@ -389,15 +389,15 @@ int main()
 		sensor_value[6] = sensor_on_line(data_received [6]);
 		
 		
-		/*senser_value_sum = data_received [0] + data_received [1] + data_received [2] + data_received [3] + data_received [4] + data_received [5] + data_received [6] ;
+		senser_value_sum = data_received [0] + data_received [1] + data_received [2] + data_received [3] + data_received [4] + data_received [5] + data_received [6] ;
 		
-		weight = ((-3)*data_received [0] + (-2)*data_received [1] + (-1)*data_received [2] + (0)*data_received [3] + (1)*data_received [4] + (2)*data_received [5] + (3)*data_received [6]);
-		*/
+		weight = ((-4)*data_received [0] + (-2)*data_received [1] + (-1)*data_received [2] + (0)*data_received [3] + (1)*data_received [4] + (2)*data_received [5] + (4)*data_received [6]);
 		
-		senser_value_sum = sensor_value[0] + sensor_value[1] + sensor_value[2] + sensor_value[3] + sensor_value[4] + sensor_value[5] + sensor_value[6] ;
+		
+		/*senser_value_sum = sensor_value[0] + sensor_value[1] + sensor_value[2] + sensor_value[3] + sensor_value[4] + sensor_value[5] + sensor_value[6] ;
 		
 		weight = ((-3)*sensor_value[0] + (-2)*sensor_value[1]+ (-1)*sensor_value[2] + (0)*sensor_value[3] + (1)*sensor_value[4] + (2)*sensor_value[5] + (3)*sensor_value[6]);
-		
+		*/
 		//control variable
 		
 		value_on_line = weight ;
@@ -443,7 +443,7 @@ int main()
 			
 			if(pid>20)
 			{
-				//if(pid < 200)
+				if(pid < 250)
 				{
 					forward();
 					velocity(speed_L-pid,speed_R);
@@ -451,20 +451,29 @@ int main()
 					lcd_print(2,5,speed_R,3);
 					lcd_print(1,13,5000+pid, 4);
 				}
-				/*else
+				else
 				{
-					left();
-					velocity(speed_L-50,speed_R-50);
-					lcd_print(2,1,speed_L-50,3);
-					lcd_print(2,5,speed_R-50,3);
-					lcd_print(1,13,5000+pid, 4);					
-				}*/
+					while(1)
+					{
+						data_received [1] = ADC_Conversion(2);
+						if(data_received [1] < 100)
+						{
+							break;
+						}
+						left();
+						velocity(speed_L-100,speed_R-100);
+						lcd_print(2,1,speed_L-100,3);
+						lcd_print(2,5,speed_R-100,3);
+						lcd_print(1,13,5000+data_received [1], 4);	
+					}
+										
+				}
 				
 			}
 			
 			if (pid<-20)
 			{
-				//if(pid>-200)
+				if(pid>-250)
 				{
 					forward();
 					velocity(speed_L,speed_R+pid);
@@ -472,14 +481,23 @@ int main()
 					lcd_print(2,5,speed_R+pid,3);
 					lcd_print(1,13,5000+pid, 4);
 				}
-				/*else
+				else
 				{
-					right();
-					velocity(speed_L-50,speed_R-50);
-					lcd_print(2,1,speed_L-50,3);
-					lcd_print(2,5,speed_R-50,3);
-					lcd_print(1,13,5000+pid, 4);
-				}*/					
+					while(1)
+					{
+						data_received [5] = spi_master_tx_and_rx(2);
+						if(data_received [5]<100)
+						{
+							break;
+						}
+						right();
+						velocity(speed_L-100,speed_R-100);
+						lcd_print(2,1,speed_L-100,3);
+						lcd_print(2,5,speed_R-100,3);
+						lcd_print(1,13,5000+data_received [5], 4);
+					}
+					
+				}					
 			}
 		}					
 	}
